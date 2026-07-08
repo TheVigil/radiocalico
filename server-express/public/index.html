@@ -1,13 +1,410 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>radiocalico</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<title>Radio Calico — Live Lossless Radio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Radio Calico — ad-free, data-free, 24-bit/48kHz lossless HLS radio, live in your browser.">
+<link rel="icon" href="radiocalico-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js" defer></script>
+<style>
+  :root {
+    --mint: #D8F2D5;
+    --forest: #1F4E23;
+    --teal: #38A29D;
+    --orange: #EFA63C;
+    --charcoal: #231F20;
+    --cream: #F5EADA;
+    --white: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--charcoal);
+    background: #FAFAF9;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    font-family: "Montserrat", sans-serif;
+    margin: 0;
+  }
+
+  nav.topbar {
+    background: var(--charcoal);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  nav.topbar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  nav.topbar span {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--mint);
+    letter-spacing: 0.02em;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    display: flex;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .art-wrap {
+    flex: 0 0 auto;
+    width: 320px;
+  }
+
+  .art-wrap img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--cream);
+    display: block;
+  }
+
+  .info {
+    flex: 1 1 320px;
+    min-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    background: var(--orange);
+    color: var(--charcoal);
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .live-badge::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    animation: pulse 1.6s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  #track-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--forest);
+  }
+
+  #track-album {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--charcoal);
+  }
+
+  .quality {
+    font-size: 0.875rem;
+    font-style: italic;
+    color: #555;
+  }
+
+  .rate-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.875rem;
+  }
+
+  .rate-row button {
+    border: none;
+    background: transparent;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+  }
+
+  .rate-row button:hover { background: var(--mint); }
+  .rate-row button.active { background: var(--teal); }
+
+  .player-bar {
+    background: var(--charcoal);
+    border-radius: 8px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--white);
+    max-width: 480px;
+  }
+
+  #play-btn {
+    background: var(--mint);
+    color: var(--charcoal);
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: none;
+    font-size: 1rem;
+  }
+
+  #play-btn:hover { background: var(--teal); color: var(--white); }
+
+  #status-text {
+    font-size: 0.8rem;
+    min-width: 70px;
+    color: var(--mint);
+  }
+
+  .volume-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    background: #555;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--teal);
+    cursor: pointer;
+    border: 2px solid var(--white);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--teal);
+    cursor: pointer;
+    border: 2px solid var(--white);
+  }
+
+  section.previous {
+    background: var(--mint);
+    padding: 48px 24px;
+  }
+
+  .previous-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .previous-inner h2 {
+    font-size: 1.5rem;
+    color: var(--forest);
+    margin-bottom: 16px;
+  }
+
+  #previous-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  #previous-list li em {
+    font-style: italic;
+  }
+
+  footer {
+    background: var(--cream);
+    color: var(--forest);
+    text-align: center;
+    padding: 24px;
+    font-size: 0.875rem;
+  }
+
+  footer a { color: var(--forest); }
+
+  @media (max-width: 600px) {
+    main { flex-direction: column; }
+    .art-wrap { width: 100%; max-width: 320px; }
+    .player-bar { max-width: none; }
+  }
+</style>
 </head>
 <body>
-  <h1>radiocalico</h1>
-  <p>Flask + SQLite local prototype is running.</p>
-  <p>Try <code>GET /api/health</code> or <code>GET /api/items</code>.</p>
+
+<nav class="topbar">
+  <img src="radiocalico-logo.png" alt="Radio Calico logo">
+  <span>Radio Calico</span>
+</nav>
+
+<main>
+  <div class="art-wrap">
+    <img id="art" src="radiocalico-logo.png" alt="Now playing artwork">
+  </div>
+
+  <div class="info">
+    <span class="live-badge">Live</span>
+    <h1 id="track-title">Radio Calico</h1>
+    <div id="track-album">Ad-free, data-free, lossless — 24/7</div>
+
+    <div class="quality">
+      <div>Stream: 24-bit / 48kHz lossless HLS</div>
+    </div>
+
+    <div class="rate-row">
+      <span>Rate this stream:</span>
+      <button id="thumbs-up" aria-label="Thumbs up">👍</button>
+      <button id="thumbs-down" aria-label="Thumbs down">👎</button>
+    </div>
+
+    <div class="player-bar">
+      <button id="play-btn" aria-label="Play">▶</button>
+      <span id="status-text">Stopped</span>
+      <div class="volume-wrap">
+        <span aria-hidden="true">🔊</span>
+        <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume">
+      </div>
+    </div>
+  </div>
+</main>
+
+<section class="previous">
+  <div class="previous-inner">
+    <h2>Previous tracks</h2>
+    <p>Track history isn't available for this stream yet.</p>
+  </div>
+</section>
+
+<footer>
+  Radio Calico — no ads, no data collection, no subscription.
+</footer>
+
+<script>
+(function () {
+  var STREAM_URL = "https://d3d4yli4hf5bmh.cloudfront.net/hls/live.m3u8";
+
+  var audio = new Audio();
+  audio.volume = 0.8;
+  audio.preload = "none";
+
+  var playBtn = document.getElementById("play-btn");
+  var statusText = document.getElementById("status-text");
+  var volumeSlider = document.getElementById("volume");
+  var thumbsUp = document.getElementById("thumbs-up");
+  var thumbsDown = document.getElementById("thumbs-down");
+
+  var isPlaying = false;
+  var hls = null;
+
+  function setStatus(text) {
+    statusText.textContent = text;
+  }
+
+  function initStream() {
+    if (window.Hls && Hls.isSupported()) {
+      hls = new Hls({ lowLatencyMode: true });
+      hls.loadSource(STREAM_URL);
+      hls.attachMedia(audio);
+      hls.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          setStatus("Error");
+        }
+      });
+    } else if (audio.canPlayType("application/vnd.apple.mpegurl")) {
+      audio.src = STREAM_URL;
+    } else {
+      setStatus("Unsupported");
+      playBtn.disabled = true;
+    }
+  }
+
+  function togglePlay() {
+    if (!isPlaying) {
+      setStatus("Buffering…");
+      audio.play().then(function () {
+        isPlaying = true;
+        playBtn.textContent = "❚❚";
+        playBtn.setAttribute("aria-label", "Pause");
+        setStatus("Live");
+      }).catch(function () {
+        setStatus("Error");
+      });
+    } else {
+      audio.pause();
+      isPlaying = false;
+      playBtn.textContent = "▶";
+      playBtn.setAttribute("aria-label", "Play");
+      setStatus("Stopped");
+    }
+  }
+
+  playBtn.addEventListener("click", function () {
+    if (!hls && !audio.src) initStream();
+    togglePlay();
+  });
+
+  volumeSlider.addEventListener("input", function () {
+    audio.volume = Number(volumeSlider.value) / 100;
+  });
+
+  audio.addEventListener("waiting", function () { setStatus("Buffering…"); });
+  audio.addEventListener("playing", function () { setStatus("Live"); });
+  audio.addEventListener("error", function () { setStatus("Error"); });
+
+  thumbsUp.addEventListener("click", function () {
+    thumbsUp.classList.add("active");
+    thumbsDown.classList.remove("active");
+  });
+  thumbsDown.addEventListener("click", function () {
+    thumbsDown.classList.add("active");
+    thumbsUp.classList.remove("active");
+  });
+})();
+</script>
+
 </body>
 </html>
