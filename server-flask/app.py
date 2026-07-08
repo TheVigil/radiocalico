@@ -2,11 +2,11 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, request
 
-DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "data", "radiocalico.db"))
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "data", "radiocalico.db"))
 
-app = Flask(__name__, static_folder="public", static_url_path="")
+app = Flask(__name__)
 
 
 def get_db():
@@ -37,11 +37,6 @@ def init_db():
     )
     conn.commit()
     conn.close()
-
-
-@app.get("/")
-def index():
-    return send_from_directory(app.static_folder, "index.html")
 
 
 @app.get("/api/health")
@@ -75,4 +70,4 @@ def create_item():
 init_db()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", 5000)), debug=True)
