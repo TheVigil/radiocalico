@@ -22,6 +22,9 @@ This split exists specifically so SQLite has a single writer process. Don't add 
 - Never commit or push directly to `main`. `main` only moves via a merge or rebase of a feature branch.
 - All feature work happens on a branch named `feature-<featurename>`. Ask the user for the feature name before creating the branch — don't invent one.
 - If it's unclear whether a change counts as a new feature (vs. something that belongs on the current branch), ask first rather than assuming.
+- Never push without prompting for my permission.
+- Always ask if I would like to see the contents of a given commit before a push operation.
+- When in doubt, always ask for my feedback before touching anything git related. 
 
 ## Commands
 
