@@ -68,18 +68,15 @@
     flex-wrap: wrap;
   }
 
-  .art-wrap {
+  .now-playing-frame {
     flex: 0 0 auto;
     width: 320px;
-  }
-
-  .art-wrap img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    border-radius: 6px;
-    background: var(--cream);
-    display: block;
+    background: var(--white);
+    border: 1px solid var(--mint);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .info {
@@ -158,11 +155,26 @@
   .rate-row button:hover { background: var(--mint); }
   .rate-row button.active { background: var(--teal); }
 
-  .player-row {
+  .player-widget {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .site-logo-mini {
+    width: 160px;
+  }
+
+  .site-logo-mini img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--cream);
+    display: block;
   }
 
   .player-bar {
@@ -173,8 +185,7 @@
     align-items: center;
     gap: 16px;
     color: var(--white);
-    flex: 1 1 280px;
-    max-width: 480px;
+    width: 100%;
   }
 
   #play-btn {
@@ -234,17 +245,6 @@
     background: var(--teal);
     cursor: pointer;
     border: 2px solid var(--white);
-  }
-
-  .meta-panel {
-    flex: 0 0 auto;
-    width: 200px;
-    background: var(--white);
-    border: 1px solid var(--mint);
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
   }
 
   .meta-art {
@@ -341,10 +341,8 @@
 
   @media (max-width: 600px) {
     main { flex-direction: column; }
-    .art-wrap { width: 100%; max-width: 320px; }
-    .player-bar { max-width: none; }
-    .player-row { flex-direction: column; }
-    .meta-panel { width: 100%; max-width: 320px; }
+    .now-playing-frame { width: 100%; max-width: 320px; }
+    .player-widget { max-width: none; }
   }
 </style>
 </head>
@@ -356,8 +354,14 @@
 </nav>
 
 <main>
-  <div class="art-wrap">
-    <img id="art" src="radiocalico-logo.png" alt="Now playing artwork">
+  <div class="now-playing-frame" role="group" aria-label="Now playing details">
+    <img id="meta-art" class="meta-art" src="radiocalico-logo.png" alt="Album cover">
+    <div class="meta-caption" aria-live="polite">
+      <div id="meta-track" class="meta-track">Fetching track info…</div>
+      <div id="meta-artist" class="meta-artist"></div>
+      <div id="meta-album" class="meta-album"></div>
+      <div id="meta-tags" class="meta-tags"></div>
+    </div>
   </div>
 
   <div class="info">
@@ -375,23 +379,17 @@
       <button id="thumbs-down" aria-label="Thumbs down">👎</button>
     </div>
 
-    <div class="player-row">
+    <div class="player-widget">
+      <div class="site-logo-mini">
+        <img src="radiocalico-logo.png" alt="Radio Calico logo">
+      </div>
+
       <div class="player-bar">
         <button id="play-btn" aria-label="Play">▶</button>
         <span id="status-text">Stopped</span>
         <div class="volume-wrap">
           <span aria-hidden="true">🔊</span>
           <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume">
-        </div>
-      </div>
-
-      <div class="meta-panel" role="group" aria-label="Now playing details">
-        <img id="meta-art" class="meta-art" src="radiocalico-logo.png" alt="Album cover">
-        <div class="meta-caption" aria-live="polite">
-          <div id="meta-track" class="meta-track">Fetching track info…</div>
-          <div id="meta-artist" class="meta-artist"></div>
-          <div id="meta-album" class="meta-album"></div>
-          <div id="meta-tags" class="meta-tags"></div>
         </div>
       </div>
     </div>
