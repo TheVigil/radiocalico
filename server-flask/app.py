@@ -81,6 +81,17 @@ def create_item():
     return jsonify(dict(row)), 201
 
 
+def get_rating_counts(db, artist, title, album):
+    rows = db.execute(
+        "SELECT rating, COUNT(*) AS n FROM song_ratings WHERE artist = ? AND title = ? AND album = ? GROUP BY rating",
+        (artist, title, album),
+    ).fetchall()
+    counts = {"up": 0, "down": 0}
+    for row in rows:
+        counts[row["rating"]] = row["n"]
+    return counts
+
+
 @app.get("/api/ratings")
 def get_rating():
     client_id = request.args.get("client_id")
@@ -95,7 +106,10 @@ def get_rating():
         "SELECT rating FROM song_ratings WHERE client_id = ? AND artist = ? AND title = ? AND album = ?",
         (client_id, artist, title, album),
     ).fetchone()
-    return jsonify({"rating": row["rating"] if row else None})
+    return jsonify({
+        "rating": row["rating"] if row else None,
+        "counts": get_rating_counts(db, artist, title, album),
+    })
 
 
 @app.post("/api/ratings")
@@ -113,20 +127,21 @@ def create_rating():
         return jsonify({"error": "rating must be 'up' or 'down'"}), 400
 
     db = get_db()
-    try:
-        db.execute(
-            "INSERT INTO song_ratings (client_id, artist, title, album, rating, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            (client_id, artist, title, album, rating, datetime.now(timezone.utc).isoformat()),
-        )
-        db.commit()
-    except sqlite3.IntegrityError:
-        existing = db.execute(
-            "SELECT rating FROM song_ratings WHERE client_id = ? AND artist = ? AND title = ? AND album = ?",
-            (client_id, artist, title, album),
-        ).fetchone()
-        return jsonify({"error": "already rated", "rating": existing["rating"] if existing else None}), 409
+    db.execute(
+        """
+        INSERT INTO song_ratings (client_id, artist, title, album, rating, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT (client_id, artist, title, album)
+        DO UPDATE SET rating = excluded.rating, created_at = excluded.created_at
+        """,
+        (client_id, artist, title, album, rating, datetime.now(timezone.utc).isoformat()),
+    )
+    db.commit()
 
-    return jsonify({"rating": rating}), 201
+    return jsonify({
+        "rating": rating,
+        "counts": get_rating_counts(db, artist, title, album),
+    })
 
 
 init_db()
