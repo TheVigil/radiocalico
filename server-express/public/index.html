@@ -64,8 +64,29 @@
     margin: 0 auto;
     padding: 48px 24px;
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .site-logo-mini {
+    width: 160px;
+  }
+
+  .site-logo-mini img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--cream);
+    display: block;
+  }
+
+  .content-row {
+    display: flex;
     gap: 48px;
     flex-wrap: wrap;
+    width: 100%;
   }
 
   .now-playing-frame {
@@ -155,28 +176,6 @@
   .rate-row button:hover { background: var(--mint); }
   .rate-row button.active { background: var(--teal); }
 
-  .player-widget {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    max-width: 480px;
-  }
-
-  .site-logo-mini {
-    width: 160px;
-  }
-
-  .site-logo-mini img {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    border-radius: 6px;
-    background: var(--cream);
-    display: block;
-  }
-
   .player-bar {
     background: var(--charcoal);
     border-radius: 8px;
@@ -185,7 +184,7 @@
     align-items: center;
     gap: 16px;
     color: var(--white);
-    width: 100%;
+    max-width: 480px;
   }
 
   #play-btn {
@@ -340,9 +339,9 @@
   footer a { color: var(--forest); }
 
   @media (max-width: 600px) {
-    main { flex-direction: column; }
+    .content-row { flex-direction: column; align-items: center; }
     .now-playing-frame { width: 100%; max-width: 320px; }
-    .player-widget { max-width: none; }
+    .player-bar { max-width: none; width: 100%; }
   }
 </style>
 </head>
@@ -354,34 +353,34 @@
 </nav>
 
 <main>
-  <div class="now-playing-frame" role="group" aria-label="Now playing details">
-    <img id="meta-art" class="meta-art" src="radiocalico-logo.png" alt="Album cover">
-    <div class="meta-caption" aria-live="polite">
-      <div id="meta-track" class="meta-track">Fetching track info…</div>
-      <div id="meta-artist" class="meta-artist"></div>
-      <div id="meta-album" class="meta-album"></div>
-      <div id="meta-tags" class="meta-tags"></div>
-    </div>
+  <div class="site-logo-mini">
+    <img src="radiocalico-logo.png" alt="Radio Calico logo">
   </div>
 
-  <div class="info">
-    <span class="live-badge">Live</span>
-    <h1 id="track-title">Radio Calico</h1>
-    <div id="track-album">Ad-free, data-free, lossless — 24/7</div>
-
-    <div class="quality">
-      <div>Stream: 24-bit / 48kHz lossless HLS</div>
+  <div class="content-row">
+    <div class="now-playing-frame" role="group" aria-label="Now playing details">
+      <img id="meta-art" class="meta-art" src="radiocalico-logo.png" alt="Album cover">
+      <div class="meta-caption" aria-live="polite">
+        <div id="meta-track" class="meta-track">Fetching track info…</div>
+        <div id="meta-artist" class="meta-artist"></div>
+        <div id="meta-album" class="meta-album"></div>
+        <div id="meta-tags" class="meta-tags"></div>
+      </div>
     </div>
 
-    <div class="rate-row">
-      <span>Rate this stream:</span>
-      <button id="thumbs-up" aria-label="Thumbs up">👍</button>
-      <button id="thumbs-down" aria-label="Thumbs down">👎</button>
-    </div>
+    <div class="info">
+      <span class="live-badge">Live</span>
+      <h1 id="track-title">Radio Calico</h1>
+      <div id="track-album">Ad-free, data-free, lossless — 24/7</div>
 
-    <div class="player-widget">
-      <div class="site-logo-mini">
-        <img src="radiocalico-logo.png" alt="Radio Calico logo">
+      <div class="quality">
+        <div>Stream: 24-bit / 48kHz lossless HLS</div>
+      </div>
+
+      <div class="rate-row">
+        <span>Rate this stream:</span>
+        <button id="thumbs-up" aria-label="Thumbs up">👍</button>
+        <button id="thumbs-down" aria-label="Thumbs down">👎</button>
       </div>
 
       <div class="player-bar">
