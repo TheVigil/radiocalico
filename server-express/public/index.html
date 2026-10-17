@@ -171,6 +171,16 @@
     padding: 4px 8px;
     border-radius: 4px;
     transition: background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .rate-count {
+    font-family: "Open Sans", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--charcoal);
   }
 
   .rate-row button:hover { background: var(--mint); }
@@ -385,8 +395,8 @@
 
       <div class="rate-row">
         <span>Rate this song:</span>
-        <button id="thumbs-up" aria-label="Thumbs up" disabled>👍</button>
-        <button id="thumbs-down" aria-label="Thumbs down" disabled>👎</button>
+        <button id="thumbs-up" aria-label="Thumbs up" disabled>👍 <span id="up-count" class="rate-count">0</span></button>
+        <button id="thumbs-down" aria-label="Thumbs down" disabled>👎 <span id="down-count" class="rate-count">0</span></button>
       </div>
 
       <div class="player-bar">
@@ -577,6 +587,8 @@
   var RATINGS_URL = "/api/ratings";
   var CLIENT_ID_KEY = "rc_client_id";
   var currentTrack = null;
+  var upCount = document.getElementById("up-count");
+  var downCount = document.getElementById("down-count");
 
   function getClientId() {
     var id = localStorage.getItem(CLIENT_ID_KEY);
@@ -589,12 +601,15 @@
 
   var clientId = getClientId();
 
-  function updateRateButtons(rating) {
+  function updateRateButtons(rating, counts) {
     thumbsUp.classList.toggle("active", rating === "up");
     thumbsDown.classList.toggle("active", rating === "down");
-    var rated = rating === "up" || rating === "down";
-    thumbsUp.disabled = !currentTrack || rated;
-    thumbsDown.disabled = !currentTrack || rated;
+    thumbsUp.disabled = !currentTrack;
+    thumbsDown.disabled = !currentTrack;
+    if (counts) {
+      upCount.textContent = counts.up;
+      downCount.textContent = counts.down;
+    }
   }
 
   function checkRatingForCurrentTrack() {
@@ -607,8 +622,8 @@
     });
     fetch(RATINGS_URL + "?" + params.toString())
       .then(function (res) { return res.json(); })
-      .then(function (data) { updateRateButtons(data.rating); })
-      .catch(function () { updateRateButtons(null); });
+      .then(function (data) { updateRateButtons(data.rating, data.counts); })
+      .catch(function () { updateRateButtons(null, null); });
   }
 
   function submitRating(rating) {
@@ -626,17 +641,9 @@
         rating: rating,
       }),
     })
-      .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
-      .then(function (result) {
-        if (result.status === 201) {
-          updateRateButtons(result.data.rating);
-        } else if (result.status === 409) {
-          updateRateButtons(result.data.rating);
-        } else {
-          updateRateButtons(null);
-        }
-      })
-      .catch(function () { updateRateButtons(null); });
+      .then(function (res) { return res.json(); })
+      .then(function (data) { updateRateButtons(data.rating, data.counts); })
+      .catch(function () { updateRateButtons(null, null); });
   }
 
   thumbsUp.addEventListener("click", function () { submitRating("up"); });
