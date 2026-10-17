@@ -339,9 +339,33 @@
 
   var isPlaying = false;
   var hls = null;
+  var elapsedSeconds = 0;
+  var elapsedTimerId = null;
 
   function setStatus(text) {
     statusText.textContent = text;
+  }
+
+  function formatElapsed(totalSeconds) {
+    var h = Math.floor(totalSeconds / 3600);
+    var m = Math.floor((totalSeconds % 3600) / 60);
+    var s = totalSeconds % 60;
+    var mm = (h > 0 ? String(m).padStart(2, "0") : String(m));
+    var ss = String(s).padStart(2, "0");
+    return h > 0 ? h + ":" + mm + ":" + ss : mm + ":" + ss;
+  }
+
+  function startElapsedTimer() {
+    if (elapsedTimerId) return;
+    elapsedTimerId = setInterval(function () {
+      elapsedSeconds++;
+      setStatus(formatElapsed(elapsedSeconds));
+    }, 1000);
+  }
+
+  function stopElapsedTimer() {
+    clearInterval(elapsedTimerId);
+    elapsedTimerId = null;
   }
 
   function initStream() {
@@ -369,13 +393,15 @@
         isPlaying = true;
         playBtn.textContent = "❚❚";
         playBtn.setAttribute("aria-label", "Pause");
-        setStatus("Live");
+        setStatus(formatElapsed(elapsedSeconds));
+        startElapsedTimer();
       }).catch(function () {
         setStatus("Error");
       });
     } else {
       audio.pause();
       isPlaying = false;
+      stopElapsedTimer();
       playBtn.textContent = "▶";
       playBtn.setAttribute("aria-label", "Play");
       setStatus("Stopped");
@@ -391,9 +417,18 @@
     audio.volume = Number(volumeSlider.value) / 100;
   });
 
-  audio.addEventListener("waiting", function () { setStatus("Buffering…"); });
-  audio.addEventListener("playing", function () { setStatus("Live"); });
-  audio.addEventListener("error", function () { setStatus("Error"); });
+  audio.addEventListener("waiting", function () {
+    stopElapsedTimer();
+    setStatus("Buffering…");
+  });
+  audio.addEventListener("playing", function () {
+    setStatus(formatElapsed(elapsedSeconds));
+    startElapsedTimer();
+  });
+  audio.addEventListener("error", function () {
+    stopElapsedTimer();
+    setStatus("Error");
+  });
 
   thumbsUp.addEventListener("click", function () {
     thumbsUp.classList.add("active");
