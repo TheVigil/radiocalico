@@ -176,6 +176,12 @@
   .rate-row button:hover { background: var(--mint); }
   .rate-row button.active { background: var(--teal); }
 
+  .rate-row button:disabled {
+    opacity: 0.4;
+    cursor: default;
+    pointer-events: none;
+  }
+
   .player-bar {
     background: var(--charcoal);
     border-radius: 8px;
@@ -378,9 +384,9 @@
       </div>
 
       <div class="rate-row">
-        <span>Rate this stream:</span>
-        <button id="thumbs-up" aria-label="Thumbs up">👍</button>
-        <button id="thumbs-down" aria-label="Thumbs down">👎</button>
+        <span>Rate this song:</span>
+        <button id="thumbs-up" aria-label="Thumbs up" disabled>👍</button>
+        <button id="thumbs-down" aria-label="Thumbs down" disabled>👎</button>
       </div>
 
       <div class="player-bar">
@@ -516,15 +522,6 @@
     setStatus("Error");
   });
 
-  thumbsUp.addEventListener("click", function () {
-    thumbsUp.classList.add("active");
-    thumbsDown.classList.remove("active");
-  });
-  thumbsDown.addEventListener("click", function () {
-    thumbsDown.classList.add("active");
-    thumbsUp.classList.remove("active");
-  });
-
   var metaArt = document.getElementById("meta-art");
   var metaTrack = document.getElementById("meta-track");
   var metaArtist = document.getElementById("meta-artist");
@@ -562,6 +559,8 @@
       lastTrackKey = trackKey;
       metaArt.src = COVER_URL + "?t=" + Date.now();
       metaArt.alt = "Album cover for " + (meta.title || "current track") + " by " + (meta.artist || "unknown artist");
+      currentTrack = { artist: meta.artist || "", title: meta.title || "", album: meta.album || "" };
+      checkRatingForCurrentTrack();
     }
   }
 
@@ -574,6 +573,74 @@
 
   fetchMetadata();
   setInterval(fetchMetadata, METADATA_POLL_MS);
+
+  var RATINGS_URL = "/api/ratings";
+  var CLIENT_ID_KEY = "rc_client_id";
+  var currentTrack = null;
+
+  function getClientId() {
+    var id = localStorage.getItem(CLIENT_ID_KEY);
+    if (!id) {
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+      localStorage.setItem(CLIENT_ID_KEY, id);
+    }
+    return id;
+  }
+
+  var clientId = getClientId();
+
+  function updateRateButtons(rating) {
+    thumbsUp.classList.toggle("active", rating === "up");
+    thumbsDown.classList.toggle("active", rating === "down");
+    var rated = rating === "up" || rating === "down";
+    thumbsUp.disabled = !currentTrack || rated;
+    thumbsDown.disabled = !currentTrack || rated;
+  }
+
+  function checkRatingForCurrentTrack() {
+    if (!currentTrack) return;
+    var params = new URLSearchParams({
+      client_id: clientId,
+      artist: currentTrack.artist,
+      title: currentTrack.title,
+      album: currentTrack.album,
+    });
+    fetch(RATINGS_URL + "?" + params.toString())
+      .then(function (res) { return res.json(); })
+      .then(function (data) { updateRateButtons(data.rating); })
+      .catch(function () { updateRateButtons(null); });
+  }
+
+  function submitRating(rating) {
+    if (!currentTrack) return;
+    thumbsUp.disabled = true;
+    thumbsDown.disabled = true;
+    fetch(RATINGS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: clientId,
+        artist: currentTrack.artist,
+        title: currentTrack.title,
+        album: currentTrack.album,
+        rating: rating,
+      }),
+    })
+      .then(function (res) { return res.json().then(function (data) { return { status: res.status, data: data }; }); })
+      .then(function (result) {
+        if (result.status === 201) {
+          updateRateButtons(result.data.rating);
+        } else if (result.status === 409) {
+          updateRateButtons(result.data.rating);
+        } else {
+          updateRateButtons(null);
+        }
+      })
+      .catch(function () { updateRateButtons(null); });
+  }
+
+  thumbsUp.addEventListener("click", function () { submitRating("up"); });
+  thumbsDown.addEventListener("click", function () { submitRating("down"); });
 })();
 </script>
 
