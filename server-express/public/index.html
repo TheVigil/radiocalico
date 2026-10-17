@@ -158,6 +158,13 @@
   .rate-row button:hover { background: var(--mint); }
   .rate-row button.active { background: var(--teal); }
 
+  .player-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
   .player-bar {
     background: var(--charcoal);
     border-radius: 8px;
@@ -166,6 +173,7 @@
     align-items: center;
     gap: 16px;
     color: var(--white);
+    flex: 1 1 280px;
     max-width: 480px;
   }
 
@@ -228,6 +236,70 @@
     border: 2px solid var(--white);
   }
 
+  .meta-panel {
+    flex: 0 0 auto;
+    width: 200px;
+    background: var(--white);
+    border: 1px solid var(--mint);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meta-art {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    background: var(--cream);
+  }
+
+  .meta-caption {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-track {
+    font-family: "Montserrat", sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--forest);
+    line-height: 1.3;
+  }
+
+  .meta-artist {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+
+  .meta-album {
+    font-size: 0.75rem;
+    color: #555;
+    font-style: italic;
+  }
+
+  .meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .meta-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--mint);
+    color: var(--forest);
+    padding: 2px 6px;
+    border-radius: 999px;
+  }
+
   section.previous {
     background: var(--mint);
     padding: 48px 24px;
@@ -271,6 +343,8 @@
     main { flex-direction: column; }
     .art-wrap { width: 100%; max-width: 320px; }
     .player-bar { max-width: none; }
+    .player-row { flex-direction: column; }
+    .meta-panel { width: 100%; max-width: 320px; }
   }
 </style>
 </head>
@@ -301,12 +375,24 @@
       <button id="thumbs-down" aria-label="Thumbs down">👎</button>
     </div>
 
-    <div class="player-bar">
-      <button id="play-btn" aria-label="Play">▶</button>
-      <span id="status-text">Stopped</span>
-      <div class="volume-wrap">
-        <span aria-hidden="true">🔊</span>
-        <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume">
+    <div class="player-row">
+      <div class="player-bar">
+        <button id="play-btn" aria-label="Play">▶</button>
+        <span id="status-text">Stopped</span>
+        <div class="volume-wrap">
+          <span aria-hidden="true">🔊</span>
+          <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume">
+        </div>
+      </div>
+
+      <div class="meta-panel" role="group" aria-label="Now playing details">
+        <img id="meta-art" class="meta-art" src="radiocalico-logo.png" alt="Album cover">
+        <div class="meta-caption" aria-live="polite">
+          <div id="meta-track" class="meta-track">Fetching track info…</div>
+          <div id="meta-artist" class="meta-artist"></div>
+          <div id="meta-album" class="meta-album"></div>
+          <div id="meta-tags" class="meta-tags"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -326,6 +412,9 @@
 <script>
 (function () {
   var STREAM_URL = "https://d3d4yli4hf5bmh.cloudfront.net/hls/live.m3u8";
+  var METADATA_URL = "https://d3d4yli4hf5bmh.cloudfront.net/metadatav2.json";
+  var COVER_URL = "https://d3d4yli4hf5bmh.cloudfront.net/cover.jpg";
+  var METADATA_POLL_MS = 15000;
 
   var audio = new Audio();
   audio.volume = 0.8;
@@ -438,6 +527,56 @@
     thumbsDown.classList.add("active");
     thumbsUp.classList.remove("active");
   });
+
+  var metaArt = document.getElementById("meta-art");
+  var metaTrack = document.getElementById("meta-track");
+  var metaArtist = document.getElementById("meta-artist");
+  var metaAlbum = document.getElementById("meta-album");
+  var metaTags = document.getElementById("meta-tags");
+  var lastTrackKey = null;
+
+  function renderMetadata(meta) {
+    var trackKey = meta.artist + "|" + meta.title + "|" + meta.album;
+
+    metaTrack.textContent = meta.title || "Unknown track";
+    metaArtist.textContent = meta.artist || "Unknown artist";
+
+    var albumLine = meta.album || "";
+    if (meta.date) albumLine += albumLine ? " (" + meta.date + ")" : meta.date;
+    metaAlbum.textContent = albumLine;
+
+    var tags = [];
+    if (meta.bit_depth && meta.sample_rate) {
+      tags.push(meta.bit_depth + "-bit / " + (meta.sample_rate / 1000) + "kHz");
+    }
+    if (meta.is_new) tags.push("New");
+    if (meta.is_summer) tags.push("Summer");
+    if (meta.is_vidgames) tags.push("Video Game");
+
+    metaTags.innerHTML = "";
+    tags.forEach(function (t) {
+      var span = document.createElement("span");
+      span.className = "meta-tag";
+      span.textContent = t;
+      metaTags.appendChild(span);
+    });
+
+    if (trackKey !== lastTrackKey) {
+      lastTrackKey = trackKey;
+      metaArt.src = COVER_URL + "?t=" + Date.now();
+      metaArt.alt = "Album cover for " + (meta.title || "current track") + " by " + (meta.artist || "unknown artist");
+    }
+  }
+
+  function fetchMetadata() {
+    fetch(METADATA_URL + "?t=" + Date.now(), { cache: "no-store" })
+      .then(function (res) { return res.json(); })
+      .then(renderMetadata)
+      .catch(function () { /* keep last known metadata on screen */ });
+  }
+
+  fetchMetadata();
+  setInterval(fetchMetadata, METADATA_POLL_MS);
 })();
 </script>
 
